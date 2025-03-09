@@ -1,0 +1,46 @@
+: hang hang ;
+
+: repeat dup 1 = [drop] [1 - over swap repeat compose] if ;
+
+: pick
+    dup 1 = [swap] [1 - [wrap swap compose swap] swap repeat [wrap swap] swap compose [wrap compose call] compose call] if ;
+
+: define
+    swap harsh-wrap [:] swap compose swap compose [;] compose call ;
+
+: multiple % 0 = ;
+
+: dip
+    over swap call swap ;
+
+: 2pick
+    wrap swap wrap swap compose swap wrap compose call ;
+
+: filter
+    swap dup empty [swap drop]
+    [split 2pick over over compose call
+    [2pick swap filter swap compose]
+    [swap drop filter] if] if ;
+
+: map
+    swap dup empty [swap drop]
+    [split 2pick dup 2pick swap compose call 2pick 2pick map swap wrap compose] if ;
+
+: range
+    swap wrap dup call 1 + 2pick dup 2pick =
+    [wrap compose]
+    [over call 1 + swap range compose] if ;
+
+: or [drop true] [] if ;
+: and [] [drop false] if ;
+
+: sum
+    dup length 1 - [+] swap repeat compose call ;
+
+: not [false] [true] if ;
+: != = not ;
+
+: loop
+    wrap [call] over compose compose call swap [loop] [drop] if ;
+
+: \ quote ;
