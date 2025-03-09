@@ -14,7 +14,8 @@ const COMMENT_END: char = ')';
 enum ItemKind {
     Symbol(String),
     Bool(bool),
-    Number(usize),
+    Integer(isize),
+    Float(f64),
     String(String),
     Quotation(Vec<Item>),
 }
@@ -45,7 +46,8 @@ impl fmt::Display for Item {
         match &self.kind {
             ItemKind::Symbol(w) => f.write_str(w),
             ItemKind::Bool(b) => write!(f, "{b}"),
-            ItemKind::Number(n) => write!(f, "{n}"),
+            ItemKind::Integer(n) => write!(f, "{n}"),
+            ItemKind::Float(n) => write!(f, "{n:?}"),
             ItemKind::String(s) => write!(f, "{s:?}"),
             ItemKind::Quotation(q) => write!(
                 f,
@@ -134,10 +136,15 @@ fn parse(source: &str) -> Vec<Item> {
                 tokens.push(Item::new(
                     i,
                     match symbol {
-                        symbol if symbol.chars().all(|c| c.is_ascii_digit()) => {
-                            ItemKind::Number(symbol.parse().unwrap())
+                        _ => {
+                            if symbol.chars().all(|c| c.is_ascii_digit()) {
+                                ItemKind::Integer(symbol.parse().unwrap())
+                            } else if let Ok(f) = symbol.parse() {
+                                ItemKind::Float(f)
+                            } else {
+                                ItemKind::Symbol(symbol.to_string())
+                            }
                         }
-                        _ => ItemKind::Symbol(symbol.to_string()),
                     },
                 ));
             }
@@ -151,7 +158,8 @@ fn parse(source: &str) -> Vec<Item> {
 enum Type {
     Symbol,
     Bool,
-    Number,
+    Integer,
+    Float,
     String,
     Quotation,
 }
@@ -161,7 +169,8 @@ impl fmt::Display for Type {
         f.write_str(match self {
             Self::Bool => "bool",
             Self::Symbol => "symbol",
-            Self::Number => "number",
+            Self::Integer => "integer",
+            Self::Float => "float",
             Self::String => "string",
             Self::Quotation => "quotation",
         })
@@ -257,7 +266,8 @@ impl Interpreter {
         Ok(v)
     }
 
-    pop_fn!(Number, pop_number, usize, data_stack, Expected);
+    pop_fn!(Integer, pop_integer, isize, data_stack, Expected);
+    pop_fn!(Float, pop_float, f64, data_stack, Expected);
     pop_fn!(Quotation, pop_quotation, Vec<Item>, data_stack, Expected);
     pop_fn!(Bool, pop_bool, bool, data_stack, Expected);
     pop_fn!(String, pop_string, String, data_stack, Expected);
@@ -274,37 +284,65 @@ impl Interpreter {
         while let Some(item) = self.execution_stack.pop() {
             macro_rules! binop_n {
                 ($op:tt) => {{
-                    let (_, n2) = self.pop_number(&item)?;
-                    let (_, n1) = self.pop_number(&item)?;
+                    let (_, n2) = self.pop_integer(&item)?;
+                    let (_, n1) = self.pop_integer(&item)?;
 
-                    self.data_stack.push(ItemKind::Number(n1 $op n2).into());
+                    self.data_stack.push(ItemKind::Integer(n1 $op n2).into());
+                }};
+            }
+
+            macro_rules! binop_f {
+                ($op:tt) => {{
+                    let (_, n2) = self.pop_float(&item)?;
+                    let (_, n1) = self.pop_float(&item)?;
+
+                    self.data_stack.push(ItemKind::Float(n1 $op n2).into());
                 }};
             }
 
             macro_rules! binop_b {
                 ($op:tt) => {{
-                    let (_, n2) = self.pop_number(&item)?;
-                    let (_, n1) = self.pop_number(&item)?;
+                    let (_, n2) = self.pop_integer(&item)?;
+                    let (_, n1) = self.pop_integer(&item)?;
+
+                    self.data_stack.push(ItemKind::Bool(n1 $op n2).into());
+                }};
+            }
+
+            macro_rules! binop_bf {
+                ($op:tt) => {{
+                    let (_, n2) = self.pop_float(&item)?;
+                    let (_, n1) = self.pop_float(&item)?;
 
                     self.data_stack.push(ItemKind::Bool(n1 $op n2).into());
                 }};
             }
 
             match item.kind {
-                ItemKind::Number(_)
+                ItemKind::Integer(_)
+                | ItemKind::Float(_)
                 | ItemKind::Quotation(_)
                 | ItemKind::Bool(_)
                 | ItemKind::String(_) => self.data_stack.push(item),
                 ItemKind::Symbol(ref name) => match name.as_str() {
                     "+" => binop_n!(+),
+                    "+." => binop_f!(+),
                     "-" => binop_n!(-),
+                    "-." => binop_f!(-),
                     "*" => binop_n!(*),
+                    "*." => binop_f!(*),
                     "%" => binop_n!(%),
+                    "%." => binop_f!(%),
                     "/" => binop_n!(/),
+                    "/." => binop_f!(/),
                     ">" => binop_b!(>),
+                    ">." => binop_bf!(>),
                     ">=" => binop_b!(>=),
-                    "<" => binop_b!(<=),
+                    ">=." => binop_bf!(>=),
+                    "<" => binop_b!(<),
+                    "<." => binop_bf!(<),
                     "<=" => binop_b!(<=),
+                    "<=." => binop_bf!(<=),
                     "=" => binop_b!(==),
                     "true" => self.data_stack.push(ItemKind::Bool(true).into()),
                     "false" => self.data_stack.push(ItemKind::Bool(false).into()),
@@ -420,10 +458,11 @@ impl Interpreter {
                     "length" => {
                         let (_, q) = self.pop_quotation(&item)?;
 
-                        self.data_stack.push(ItemKind::Number(q.len()).into());
+                        self.data_stack
+                            .push(ItemKind::Integer(q.len() as isize).into());
                     }
                     "exit" => {
-                        let (_, n) = self.pop_number(&item)?;
+                        let (_, n) = self.pop_integer(&item)?;
 
                         std::process::exit(i32::try_from(n).map_err(|e| {
                             RuntimeError::Explicit {
@@ -456,6 +495,17 @@ impl Interpreter {
                         let (_, s) = self.pop_string(&item)?;
 
                         println!("{s}");
+                    }
+                    "int" => {
+                        let (_, f) = self.pop_float(&item)?;
+
+                        self.data_stack
+                            .push(ItemKind::Integer(f.trunc() as isize).into());
+                    }
+                    "float" => {
+                        let (_, i) = self.pop_integer(&item)?;
+
+                        self.data_stack.push(ItemKind::Float(i as f64).into());
                     }
                     _ => {
                         let Some(binding) = self.bindings.get(name) else {
