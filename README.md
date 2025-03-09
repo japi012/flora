@@ -29,8 +29,8 @@ cargo run -- <filename>
 ### Comments
 
 ```
-( This is a comment )
-( Comments are surrounded in parentheses )
+(This is a comment.)
+(Comments are surrounded in parentheses.)
 ```
 
 ### `Hello world!`
@@ -42,33 +42,33 @@ cargo run -- <filename>
 ### Arithmetic
 
 ```
-3 4 + . ( => 7 )
-5 3 - . ( => 2 )
-10 2 * . ( => 20 )
-10 2 / . ( => 5 )
+3 4 + . (=> 7)
+5 3 - . (=> 2)
+10 2 * . (=> 20)
+10 2 / . (=> 5)
 ```
 
 ### Quotations
 
 ```
-"std/prelude.flora" load ( `load` can be used to load a file. )
+"std/prelude.flora" load (`load` can be used to load a file.)
 
-( A quotation is a block of code surrounded in square brackets. )
-( They can be executed with `call`: )
+(A quotation is a block of code surrounded in square brackets.)
+(They can be executed with `call`:)
 
-[1 2 +] call . ( => 3 )
+[1 2 +] call . (=> 3)
 
-( They can be used for conditionals with `if`: )
+(They can be used for conditionals with `if`:)
 
-5 10 > ["Greater"] ["Smaller"] if puts ( => Smaller )
+5 10 > ["Greater"] ["Smaller"] if puts (=> Smaller)
 
-( They can be used for regular lists. )
+(They can be used for regular lists.)
 
-[1 2 3] [4 5 6] compose . ( => [1 2 3 4 5 6] )
+[1 2 3] [4 5 6] compose . (=> [1 2 3 4 5 6])
 
-( They work well with a lot of standard library functions. )
+(They work well with a lot of standard library functions.)
 
-[1 2 3 4] [dup *] map . ( => [1 4 9 16] )
-1 100 range . ( => [1 2 3 4 ... 98 99 100] )
-1 100 range [2 % 0 =] filter . ( => [2 4 6 8 ... 96 98 100] )
+[1 2 3 4] [dup *] map . (=> [1 4 9 16])
+1 100 range . (=> [1 2 3 4 ... 98 99 100])
+1 100 range [2 % 0 =] filter . (=> [2 4 6 8 ... 96 98 100])
 ```

@@ -7,6 +7,9 @@ use std::{
 const QUOTATION_START: char = '[';
 const QUOTATION_END: char = ']';
 
+const COMMENT_START: char = '(';
+const COMMENT_END: char = ')';
+
 #[derive(Debug, Clone)]
 enum ItemKind {
     Symbol(String),
@@ -66,16 +69,16 @@ fn parse(source: &str) -> Vec<Item> {
         }
 
         match c {
-            '[' => {
-                let mut brace_count = 1;
+            QUOTATION_START => {
+                let mut bracket_count = 1;
                 let mut last_i = i;
 
-                while chars.peek().is_some() && brace_count > 0 {
+                while chars.peek().is_some() && bracket_count > 0 {
                     let (last, c) = chars.next().unwrap();
 
                     match c {
-                        QUOTATION_START => brace_count += 1,
-                        QUOTATION_END => brace_count -= 1,
+                        QUOTATION_START => bracket_count += 1,
+                        QUOTATION_END => bracket_count -= 1,
                         _ => (),
                     }
 
@@ -89,6 +92,19 @@ fn parse(source: &str) -> Vec<Item> {
                     }
                 }
                 tokens.push(Item::new(i, ItemKind::Quotation(quoted)));
+            }
+            COMMENT_START => {
+                let mut comment_count = 1;
+
+                while chars.peek().is_some() && comment_count > 0 {
+                    let (_, c) = chars.next().unwrap();
+
+                    match c {
+                        COMMENT_START => comment_count += 1,
+                        COMMENT_END => comment_count -= 1,
+                        _ => (),
+                    }
+                }
             }
             '"' => {
                 let mut last_i = i;
@@ -350,15 +366,6 @@ impl Interpreter {
 
                         self.bindings.insert(name, quotation);
                     }
-                    "(" => {
-                        while let Some(w) = self.execution_stack.pop() {
-                            if let ItemKind::Symbol(ref s) = w.kind {
-                                if s.as_str() == ")" {
-                                    break;
-                                }
-                            }
-                        }
-                    }
                     "quote" => {
                         let v = self.pop_exec(&item)?;
 
@@ -518,7 +525,7 @@ fn write_error(
     if let Some((line, col)) = error.location_in_source(source) {
         let source_line = source.lines().nth(line).unwrap_or("");
 
-        writeln!(to, " --> [{path}:{line}:{col}]")?;
+        writeln!(to, " --> [{path}:{}:{}]", line + 1, col + 1)?;
         writeln!(to, "    {source_line}")?;
         writeln!(to, "    {}^", " ".repeat(col))?;
     }
