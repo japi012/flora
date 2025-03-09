@@ -69,6 +69,6 @@ cargo run -- <filename>
 ( They work well with a lot of standard library functions. )
 
 [1 2 3 4] [dup *] map . ( => [1 4 9 16] )
-1 100 range . ( => [1 2 3 4 ... 98 99 100 ] )
-1 100 range [2 % 0 =] filter ( => [2 4 6 8 ... 96 98 100] )
+1 100 range . ( => [1 2 3 4 ... 98 99 100] )
+1 100 range [2 % 0 =] filter . ( => [2 4 6 8 ... 96 98 100] )
 ```
