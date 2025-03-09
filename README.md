@@ -51,6 +51,8 @@ cargo run -- <filename>
 ### Quotations
 
 ```
+"std/prelude.flora" load ( `load` can be used to load a file. )
+
 ( A quotation is a block of code surrounded in square brackets. )
 ( They can be executed with `call`: )
 
